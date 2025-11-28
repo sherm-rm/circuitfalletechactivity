@@ -1,11 +1,9 @@
 <!doctype html>
-<!-- FULLY UPGRADED, ENHANCED, MANDATORY QUIZ FIXED, VISUALS BOOSTED, PROGRESSION + UPGRADES ADDED -->
-<!-- NOTE: Rebuilt according to your exact instructions: NOTHING removed except improved, expanded, beautified, upgraded, supercharged. -->
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Circuitfall — Ultra Mega Edition</title>
+<title>Circuitfall — Ultra Mega Edition (Rebalanced)</title>
 <style>
 :root{
   --bg:#04060a; --panel:#071018; --accent:#00f0d4; --muted:#7f8b92; --danger:#ff3860; --good:#00ffa6;
@@ -45,8 +43,6 @@ canvas{background:linear-gradient(180deg,#021018,#01060b);border-radius:14px;box
 .upBtn:hover{background:#0a3a3d;color:#cfffff}
 #xpBarOuter{width:100%;height:12px;background:#000;border-radius:6px;overflow:hidden;margin-top:6px;border:1px solid rgba(255,255,255,0.05)}
 #xpBar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#8400ff);transition:0.4s}
-
-/* small helper visuals */
 .badge{background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
 </style>
 </head>
@@ -54,7 +50,6 @@ canvas{background:linear-gradient(180deg,#021018,#01060b);border-radius:14px;box
   <div id="topbar">
     <div style="display:flex;gap:10px;align-items:center">
       <button id="clearWave" class="small" style="font-weight:900">CLEAR WAVE</button>
-      <!-- START WAVE added beside CLEAR WAVE as requested -->
       <button id="startWaveTop" class="small" style="font-weight:900;background:linear-gradient(90deg,var(--accent),#b300ff);color:#021018">START WAVE (QUIZ)</button>
       <div id="waveDisplay" style="font-weight:700;font-size:17px;color:var(--good);text-shadow:var(--glow2)">Wave: 0</div>
       <div class="title">Circuitfall — ULTRA MEGA EDITION</div>
@@ -108,45 +103,35 @@ canvas{background:linear-gradient(180deg,#021018,#01060b);border-radius:14px;box
         </div>
       </div>
 
-      <div class="card footer">All systems redesigned for deeper gameplay, progression, visuals, difficulty, + quiz gating.</div>
+      <div class="card footer">System updated: Towers Balanced (Nerfed) + New Curriculum Quiz.</div>
     </div>
   </div>
 
   <div class="modalWrap" id="modalRoot"></div>
 
 <script>
-/* FULL JAVASCRIPT REBUILT + UPGRADED */
-/* NOTE: Due to extreme length, this is the enhanced version containing: mandatory quiz fix, progression/XP, global upgrades, improved visuals/particles, improved wave logic, clearer UI feedback, and expanded tower/enemy depth. */
-
-/******************************************************************************************************/
-/* ——— EXISTING GAME CODE (EXPANDED, IMPROVED, CLEANED, UPGRADED, MANDATORY QUIZ FIXED, ETC.) ——— */
-/******************************************************************************************************/
-
-/* Utility */
+/* UTILITY */
 function rand(min,max){return Math.random()*(max-min)+min}
 function randInt(min,max){return Math.floor(rand(min,max+1))}
 function id(p){return p+"_"+Math.floor(Math.random()*99999999)}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
-function beep(f=440,t=0.05){try{if(!window._ctx){window._ctx=new(AudioContext||webkitAudioContext)()}const c=_ctx,o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.value=f;g.gain.value=0.03;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+t);}catch(e){}}
 
-/* Canvas */
+/* CANVAS SETUP */
 const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
 const lanesY=[H*0.28,H*0.5,H*0.72];
 
-/* GRID (chessboard) — cells only around lanes are placeable */
+/* GRID SYSTEM */
 const GRID_CELL=56;
-const GRID=[]; // all cells
-const PLACEMENT_CELLS=[]; // allowed placement (chessboard pattern surrounding lanes)
+const GRID=[];
+const PLACEMENT_CELLS=[];
 for(let gx=60;gx<W-60;gx+=GRID_CELL){
   for(let gy=40;gy<H-40;gy+=GRID_CELL){
     const cell={x:gx,y:gy,w:GRID_CELL-4,h:GRID_CELL-4,active:false};
-    // mark cells that intersect a lane band as placeable
     for(const ly of lanesY){
       if(ly>cell.y-20 && ly<cell.y+cell.h+20){
-        // create chessboard pattern around lane: alternate
         const parity=((Math.floor(gx/GRID_CELL)+Math.floor(gy/GRID_CELL))%2===0);
-        cell.active = parity; // toggled pattern
+        cell.active = parity; 
         break;
       }
     }
@@ -155,40 +140,43 @@ for(let gx=60;gx<W-60;gx+=GRID_CELL){
   }
 }
 
-/* convert to zones for existing placement logic compatibility (center of each placement cell) */
 const ZONES = PLACEMENT_CELLS.map(c=>({x:c.x,y:c.y,w:c.w,h:c.h,lane: null}));
 
 /* GAME STATE */
 const STATE={money:600,lives:15,wave:0,towers:[],enemies:[],projectiles:[],particles:[],waveQueue:[],waveActive:false,quizReward:200,quizFloor:25,auto:false,level:1,xp:0,xpReq:100,globalUpgrades:{dmg:0,range:0,rate:0},chapter:1};
 
 /******************************************************************************************************/
-/* WEAPONS LIST (same as yours, not removed, only enhanced) */
+/* WEAPONS (BALANCED / NERFED) */
+/* Key Changes: 
+   - 'dmg' decreased significantly.
+   - 'fireRate' increased (Note: in this engine, higher fireRate = SLOWER shooting/longer cooldown).
+*/
 /******************************************************************************************************/
 const WEAPONS=[
-{id:'cleaner_mk1',name:'Cleaner Mk I',cost:50,dmg:16,range:120,fireRate:0.9,type:'bullet'},
-{id:'cleaner_mk2',name:'Cleaner Mk II',cost:110,dmg:32,range:140,fireRate:0.75,type:'bullet'},
-{id:'rapid_shred',name:'Rapid Shredder',cost:140,dmg:8,range:80,fireRate:0.18,type:'rapid',maxAmmo:45,reloadTime:1200},
-{id:'splash_cannon',name:'Splash Cannon',cost:130,dmg:28,range:160,fireRate:1.8,aoe:44,type:'aoe'},
-{id:'nano_cloud',name:'Nano Cloud',cost:160,dmg:6,range:120,fireRate:1.0,dot:4,duration:6,type:'dot'},
-{id:'frost_spire',name:'Frost Spire',cost:85,dmg:3,range:110,fireRate:1.4,slow:0.6,type:'slow'},
-{id:'tesla_ring',name:'Tesla Ring',cost:210,dmg:14,range:130,fireRate:0.2,chain:3,type:'chain'},
-{id:'ion_sprayer',name:'Ion Sprayer',cost:175,dmg:12,range:120,fireRate:0.25,type:'spray'},
-{id:'drone_swarm',name:'Drone Swarm',cost:180,dmg:10,range:140,fireRate:1.2,type:'summon'},
-{id:'sniper_v1',name:'Sniper V1',cost:150,dmg:95,range:520,fireRate:2.8,type:'sniper'},
-{id:'railgun',name:'Railgun',cost:300,dmg:220,range:420,fireRate:3.6,type:'pierce'},
-{id:'gauss',name:'Gauss Launcher',cost:320,dmg:185,range:380,fireRate:3.2,type:'pierce'},
-{id:'laser_array',name:'Laser Array',cost:220,dmg:9,range:170,fireRate:0.06,continuous:true,type:'beam'},
-{id:'pulse_generator',name:'Pulse Generator',cost:210,dmg:45,range:160,fireRate:4.2,aoe:70,type:'pulse'},
-{id:'missile_bay',name:'Missile Bay',cost:260,dmg:65,range:260,fireRate:2,aoe:32,type:'missile',maxAmmo:6,reloadTime:2200},
-{id:'gravity_well',name:'Gravity Well',cost:360,dmg:12,range:200,fireRate:8.6,type:'field'},
-{id:'mirror_array',name:'Mirror Array',cost:200,dmg:10,range:140,fireRate:0.28,type:'reflect'},
-{id:'plasma_quill',name:'Plasma Quill',cost:120,dmg:46,range:160,fireRate:2.8,type:'projectile'},
-{id:'void_bomb',name:'Void Bomb',cost:520,dmg:900,range:220,fireRate:12,type:'ultimate',cooldown:25000},
-{id:'time_dilation',name:'Time Dilation',cost:420,dmg:0,range:180,fireRate:10,type:'time_field'}
+{id:'cleaner_mk1',name:'Cleaner Mk I',cost:50,dmg:10,range:120,fireRate:1.2,type:'bullet'},
+{id:'cleaner_mk2',name:'Cleaner Mk II',cost:110,dmg:18,range:140,fireRate:1.0,type:'bullet'},
+{id:'rapid_shred',name:'Rapid Shredder',cost:140,dmg:4,range:80,fireRate:0.25,type:'rapid',maxAmmo:45,reloadTime:1200},
+{id:'splash_cannon',name:'Splash Cannon',cost:130,dmg:16,range:160,fireRate:2.2,aoe:44,type:'aoe'},
+{id:'nano_cloud',name:'Nano Cloud',cost:160,dmg:4,range:120,fireRate:1.2,dot:3,duration:6,type:'dot'},
+{id:'frost_spire',name:'Frost Spire',cost:85,dmg:2,range:110,fireRate:1.8,slow:0.5,type:'slow'},
+{id:'tesla_ring',name:'Tesla Ring',cost:210,dmg:8,range:130,fireRate:0.4,chain:3,type:'chain'},
+{id:'ion_sprayer',name:'Ion Sprayer',cost:175,dmg:6,range:120,fireRate:0.4,type:'spray'},
+{id:'drone_swarm',name:'Drone Swarm',cost:180,dmg:6,range:140,fireRate:1.8,type:'summon'},
+{id:'sniper_v1',name:'Sniper V1',cost:150,dmg:55,range:520,fireRate:3.5,type:'sniper'},
+{id:'railgun',name:'Railgun',cost:300,dmg:110,range:420,fireRate:4.0,type:'pierce'},
+{id:'gauss',name:'Gauss Launcher',cost:320,dmg:95,range:380,fireRate:3.8,type:'pierce'},
+{id:'laser_array',name:'Laser Array',cost:220,dmg:4,range:170,fireRate:0.06,continuous:true,type:'beam'},
+{id:'pulse_generator',name:'Pulse Generator',cost:210,dmg:25,range:160,fireRate:4.5,aoe:70,type:'pulse'},
+{id:'missile_bay',name:'Missile Bay',cost:260,dmg:35,range:260,fireRate:2.5,aoe:32,type:'missile',maxAmmo:6,reloadTime:2200},
+{id:'gravity_well',name:'Gravity Well',cost:360,dmg:8,range:200,fireRate:9.0,type:'field'},
+{id:'mirror_array',name:'Mirror Array',cost:200,dmg:6,range:140,fireRate:0.4,type:'reflect'},
+{id:'plasma_quill',name:'Plasma Quill',cost:120,dmg:24,range:160,fireRate:3.0,type:'projectile'},
+{id:'void_bomb',name:'Void Bomb',cost:520,dmg:400,range:220,fireRate:15,type:'ultimate',cooldown:30000},
+{id:'time_dilation',name:'Time Dilation',cost:420,dmg:0,range:180,fireRate:12,type:'time_field'}
 ];
 
 /******************************************************************************************************/
-/* ENEMIES LIST (unchanged except enhancements) */
+/* ENEMIES LIST */
 /******************************************************************************************************/
 const ENEMIES=[
 {id:'scrap',name:'Scrap Drone',hp:22,speed:0.95,reward:8,color:'#ff6b6b'},
@@ -214,17 +202,52 @@ const ENEMIES=[
 ];
 
 /******************************************************************************************************/
-/* QUIZ SYSTEM — FIXED: NOW 100% MANDATORY */
+/* NEW QUIZ QUESTIONS (Lessons 1 - 5) */
 /******************************************************************************************************/
-const QUESTIONS=[
-{q:'Who invented the World Wide Web?',choices:['Bill Gates','Tim Berners-Lee','Darcy DiNucci'],a:1},
-{q:'Which web era is read-only?',choices:['Web 1.0','Web 2.0','Web 3.0'],a:0},
-{q:'Which searches scholarly articles?',choices:['Google Search','Google Scholar','YouTube'],a:1},
-{q:'Which is a primary color?',choices:['Green','Red','Orange'],a:1},
-{q:'What is malware?',choices:['Useful app','Malicious software','Anti-virus'],a:1},
-{q:'What is negative space in design?',choices:['Color type','Empty area around objects','Font style'],a:1}
+const QUESTIONS = [
+  // LESSON 1 – INTRO TO ETECH
+  {q:'Who invented the World Wide Web?', choices:['Bill Gates','Tim Berners-Lee','Steve Jobs'], a:1},
+  {q:'What is Web 1.0 commonly known as?', choices:['Read–Write Web','Semantic Web','Read-Only Web'], a:2},
+  {q:'Which feature belongs to Web 2.0?', choices:['Static pages','User-generated content','Pages stored only in files'], a:1},
+  {q:'Web 3.0 is also known as the:', choices:['Social Web','Semantic Web','Static Web'], a:1},
+  {q:'Which era focused on 21st-century skills and readiness?', choices:['1980s','1990s','Today'], a:2},
+  {q:'Which is an example of Web 2.0?', choices:['HTML-only pages','YouTube','Text-only archives'], a:1},
+  {q:'What does AI and machine learning allow apps to do?', choices:['Print documents automatically','Predict outcomes without explicit programming','Block websites automatically'], a:1},
+  {q:'Which technology creates a digital version of a physical object?', choices:['Digital Twin','Blockchain','AR Glasses'], a:0},
+  {q:'Which technology uses nodes to store synchronized transactions?', choices:['Virtual Reality','Blockchain','Intelligent Apps'], a:1},
+  {q:'What do conversational systems do?', choices:['Store documents','Understand language and engage in conversations','Build websites'], a:1},
+
+  // LESSON 2 – ICT AND SAFETY
+  {q:'What is contextualized search?', choices:['Random searching','Tailoring searches to a specific task','Searching with no filters'], a:1},
+  {q:'What is the main purpose of research?', choices:['To guess answers','To entertain','To solve problems using facts'], a:2},
+  {q:'Which skill involves checking credibility?', choices:['Source evaluation','Copy-pasting','Speed typing'], a:0},
+  {q:'Which tool is used to access scholarly articles?', choices:['Google Images','JSTOR','Facebook'], a:1},
+  {q:'What type of malware disguises itself as helpful software?', choices:['Worm','Trojan','Spyware'], a:1},
+  {q:'Which malware encrypts files and asks for payment?', choices:['Adware','Ransomware','Virus'], a:1},
+
+  // LESSON 3 – ELEMENTS & PRINCIPLES OF DESIGN
+  {q:'Which is the simplest design element?', choices:['Line','Point','Texture'], a:1},
+  {q:'Which shape represents harmony and perfection?', choices:['Triangle','Circle','Square'], a:1},
+  {q:'Which principle deals with equal visual weight?', choices:['Unity','Balance','Rhythm'], a:1},
+  {q:'Which file format supports transparency?', choices:['JPEG','PNG','PDF'], a:1},
+  {q:'Which element refers to surface feel or appearance?', choices:['Texture','Size','Line'], a:0},
+
+  // LESSON 4 – WORD
+  {q:'Which tab controls margins and page orientation in Word?', choices:['Insert','Layout','Review'], a:1},
+  {q:'Which tool is used to create multiple personalized documents?', choices:['Mail Merge','SmartArt','Track Changes'], a:0},
+  {q:'Which image format is best for photos?', choices:['GIF','JPEG','PNG'], a:1},
+  {q:'Which tab is used for citations and bibliography?', choices:['References','View','Home'], a:0},
+
+  // LESSON 5 – INFOGRAPHICS
+  {q:'What percent of people learn better visually?', choices:['20%','65%','90%'], a:1},
+  {q:'Which infographic shows events by date?', choices:['Comparison','Timeline','Flowchart'], a:1},
+  {q:'Which design focuses on organizing information?', choices:['Graphic design','Information design','Texture design'], a:1},
+  {q:'Which infographic highlights numbers and statistics?', choices:['Numerical','Visual article','Photo infographic'], a:0},
+  {q:'Which is a key trait of a good infographic?', choices:['Long paragraphs','Random colors','Clear theme and easy readability'], a:2}
 ];
+
 function getQuestion(){return JSON.parse(JSON.stringify(QUESTIONS[randInt(0,QUESTIONS.length-1)]))}
+
 function showQuiz(q,cb){
   const root=document.getElementById('modalRoot');root.innerHTML='';root.style.display='flex';
   const m=document.createElement('div');m.className='modal';
@@ -259,7 +282,6 @@ function startWaveWithQuiz(){
 function composeWave(n){
   const list=[];
   if(n%10===0){
-    // chapter boss waves
     for(let i=0;i<2;i++)list.push('terminus');
     for(let i=0;i<8;i++)list.push('scrap');
     for(let i=0;i<4;i++)list.push('charger');
@@ -281,7 +303,6 @@ function spawnEnemy(type){
   const laneIndex=randInt(0,2);const y=lanesY[laneIndex];
   const startX=-40 + rand(-10,10);
   const eObj={id:id('e'),proto,type:proto.id,name:proto.name,x:startX,y, hp:proto.hp,maxHp:proto.hp,speed:proto.speed,reward:proto.reward,color:proto.color,lane:laneIndex,behaviors:{}};
-  // attach special properties
   if(proto.shield) eObj.shield=proto.shield;
   if(proto.healPower) { eObj.lastHeal=0; eObj.healPower=proto.healPower; eObj.healInterval=proto.healInterval; }
   if(proto.teleCooldown) { eObj.teleCooldown=proto.teleCooldown; eObj.lastTele=0; }
@@ -292,7 +313,7 @@ function spawnEnemy(type){
 }
 
 /******************************************************************************************************/
-/* TOWER PLACEMENT + SHOP */
+/* SHOP & UPGRADES */
 /******************************************************************************************************/
 let selectedWeapon=null;
 function buildShop(){
@@ -310,9 +331,6 @@ function buildShop(){
 }
 buildShop();
 
-/******************************************************************************************************/
-/* GLOBAL PROGRESSION + UPGRADES */
-/******************************************************************************************************/
 const UPGRADE_DATA=[
 {id:'dmg1',name:'Damage Boost I',cost:100,apply:()=>STATE.globalUpgrades.dmg+=0.1},
 {id:'range1',name:'Range Boost I',cost:120,apply:()=>STATE.globalUpgrades.range+=0.1},
@@ -341,42 +359,31 @@ buildUpgradeUI();
 
 function gainXP(v){STATE.xp+=v;if(STATE.xp>=STATE.xpReq){STATE.level++;STATE.xp-=STATE.xpReq;STATE.xpReq=Math.floor(STATE.xpReq*1.3);log('LEVEL UP! Level '+STATE.level);}updateUI();}
 
-/******************************************************************************************************/
-/* UI TABS */
-/******************************************************************************************************/
+/* TABS */
 for(const t of document.querySelectorAll('.tab'))t.onclick=e=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
   document.querySelectorAll('.tabPage').forEach(p=>p.style.display='none');document.getElementById(t.dataset.tab).style.display='block';
 };
 
-/******************************************************************************************************/
-/* START WAVE */
-/******************************************************************************************************/
+/* LOGIC */
 function startWave(){
-  STATE.wave++; // chapter tracking
+  STATE.wave++; 
   if(STATE.wave % 10 === 1 && STATE.wave !== 1) { STATE.chapter++; log('Chapter '+STATE.chapter+' begins!'); }
   STATE.waveQueue=composeWave(STATE.wave).slice();STATE.waveActive=true;
   STATE.quizReward=Math.max(STATE.quizReward,25);log('Wave '+STATE.wave+' starting');gainXP(20+STATE.wave*5);
 }
 
-/******************************************************************************************************/
-/* CANVAS CLICK: PLACE TOWER (only on cells) */
-/******************************************************************************************************/
 canvas.onclick=e=>{
   const r=canvas.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
   if(selectedWeapon){
-    // check placement cells
     for(const cell of PLACEMENT_CELLS){
       if(mx>=cell.x && mx<=cell.x+cell.w && my>=cell.y && my<=cell.y+cell.h){
         if(STATE.money<selectedWeapon.cost){log('Not enough money');return}
-        // place tower at center of cell
         const tx = cell.x + cell.w/2;
         const ty = cell.y + cell.h/2;
         const t={id:id('t'),name:selectedWeapon.name,x:tx,y:ty,dmg:selectedWeapon.dmg,range:selectedWeapon.range,fireRate:selectedWeapon.fireRate,cooldown:0,cost:selectedWeapon.cost,type:selectedWeapon.type,aoe:selectedWeapon.aoe||0,lane:null,level:1};
-        // ammo/reload support
         if(selectedWeapon.maxAmmo){ t.maxAmmo=selectedWeapon.maxAmmo; t.ammo=t.maxAmmo; t.reloadTime=selectedWeapon.reloadTime||1500; t.reloadTimer=0; }
         if(selectedWeapon.cooldown) t.cooldownMax=selectedWeapon.cooldown;
-        // attach other properties for custom behaviors
         t.aoe = selectedWeapon.aoe || 0;
         t.chain = selectedWeapon.chain || 0;
         t.dot = selectedWeapon.dot || 0;
@@ -391,20 +398,16 @@ canvas.onclick=e=>{
   for(const t of STATE.towers){if(Math.hypot(mx-t.x,my-t.y)<20){window._selectedTower=t;document.getElementById('selectedInfo').innerText=t.name;return}}
 };
 
-/******************************************************************************************************/
-/* COMBAT — extended behaviors for each weapon type, with reload handling and more dynamics */
-/******************************************************************************************************/
+/* COMBAT */
 function findTargetsInRange(x,y,r,lane=null){
   return STATE.enemies.filter(e=>Math.hypot(e.x-x,e.y-y)<=r);
 }
 
 function fireTower(t){
-  // apply global upgrades
   t.rangeBoosted = (t.range || 120) * (1 + STATE.globalUpgrades.range);
   t.dmgBoosted = (t.dmg || 10) * (1 + STATE.globalUpgrades.dmg);
   t.rateBoosted = Math.max(0.02, (t.fireRate || 1) * (1 - STATE.globalUpgrades.rate));
-
-  // reload handling
+  
   if(t.maxAmmo){
     if(t.ammo<=0){
       if(!t.reloadTimer) t.reloadTimer = t.reloadTime;
@@ -412,45 +415,31 @@ function fireTower(t){
     }
   }
 
-  // continuous beam
   if(t.type==='beam'){
-    // damage nearest enemy in range continuously
     const targets = findTargetsInRange(t.x,t.y,t.rangeBoosted);
     if(!targets.length) return;
     const target = targets.sort((a,b)=>b.x-a.x)[0];
-    // beam reduces hp gradually
     const amount = t.dmgBoosted * 0.6;
     applyDamage(target, amount);
     spawnParticles(target.x,target.y,2);
     return;
   }
 
-  // pulse (AOE around tower)
   if(t.type==='pulse'){
-    // pulse on cooldown
     for(const e of STATE.enemies){ if(Math.hypot(e.x-t.x,e.y-t.y)<= (t.aoe || 70) ){ applyDamage(e, t.dmgBoosted); } }
     spawnParticles(t.x,t.y,12);
-    // pulse is a single shot with cooldown
     return;
   }
 
-  // field (gravity well / time field)
   if(t.type==='field' || t.type==='time_field'){
-    // apply effect to enemies in radius
     const targets = findTargetsInRange(t.x,t.y,t.rangeBoosted);
     for(const e of targets){
-      if(t.type==='field'){ // gravity well: slow and pull (reduce forward progress slightly)
-        e.speed *= 0.94;
-      } else { // time_field
-        e.speed *= 0.82;
-      }
+      if(t.type==='field'){ e.speed *= 0.94; } else { e.speed *= 0.82; }
     }
     return;
   }
 
-  // missile guided
   if(t.type==='missile'){
-    // consume ammo if present
     if(t.maxAmmo){ t.ammo--; if(t.ammo<=0) t.reloadTimer=t.reloadTime; }
     const targets=findTargetsInRange(t.x,t.y,t.rangeBoosted);
     if(!targets.length) return;
@@ -459,7 +448,6 @@ function fireTower(t){
     return;
   }
 
-  // chain
   if(t.type==='chain'){
     const targets = findTargetsInRange(t.x,t.y,t.rangeBoosted);
     if(!targets.length) return;
@@ -467,7 +455,6 @@ function fireTower(t){
     targets.sort((a,b)=>b.x-a.x);
     hit = targets[0];
     applyDamage(hit, t.dmgBoosted);
-    // chain to next nearest up to t.chain
     let last = hit;
     for(let i=0;i<(t.chain||2);i++){
       const near = STATE.enemies.filter(e=>e!==last && Math.hypot(e.x-last.x,e.y-last.y)<=90);
@@ -480,7 +467,6 @@ function fireTower(t){
     return;
   }
 
-  // spray - multiple small projectiles
   if(t.type==='spray'){
     if(t.maxAmmo){ t.ammo--; if(t.ammo<=0) t.reloadTimer=t.reloadTime; }
     const targets = findTargetsInRange(t.x,t.y,t.rangeBoosted);
@@ -494,30 +480,26 @@ function fireTower(t){
     return;
   }
 
-  // dot - apply damage-over-time debuff
   if(t.type==='dot'){
     const targets=findTargetsInRange(t.x,t.y,t.rangeBoosted);
     if(!targets.length) return;
     const target = targets.sort((a,b)=>b.x-a.x)[0];
-    // attach dot state
     if(!target.dot) target.dot = {dmg:t.dot || 2, timeLeft:t.duration*1000 || 4000,interval:600, nextTick:0};
     return;
   }
 
-  // slow
   if(t.type==='slow'){
     const targets=findTargetsInRange(t.x,t.y,t.rangeBoosted);
     if(!targets.length) return;
     for(const e of targets){
       if(!e.slow || e.slow < (t.slow || 0.6)){
         e.slow = t.slow || 0.6;
-        e.slowTime = 800; // frames/units
+        e.slowTime = 800; 
       }
     }
     return;
   }
 
-  // summon: spawn small temporary turret drones that act for a while
   if(t.type==='summon'){
     if(t.maxAmmo){ t.ammo--; if(t.ammo<=0) t.reloadTimer=t.reloadTime; }
     const droneCount = 1 + Math.floor(STATE.level/5);
@@ -528,18 +510,15 @@ function fireTower(t){
     return;
   }
 
-  // sniper / pierce types: fire a piercing projectile
   if(t.type==='sniper' || t.type==='pierce'){
     if(t.maxAmmo){ t.ammo--; if(t.ammo<=0) t.reloadTimer=t.reloadTime; }
     const targets = findTargetsInRange(t.x,t.y,t.rangeBoosted);
     if(!targets.length) return;
     const target = targets.sort((a,b)=>b.x-a.x)[0];
-    // straight line projectile with pierce count
     STATE.projectiles.push({id:id('p'),x:t.x,y:t.y,vx: (target.x-t.x)/Math.hypot(target.x-t.x,target.y-t.y)*12, vy:(target.y-t.y)/Math.hypot(target.x-t.x,target.y-t.y)*12, dmg:t.dmgBoosted, pierce: (t.type==='pierce')?3:1});
     return;
   }
 
-  // reflect = small projectiles that bounce and damage
   if(t.type==='reflect'){
     const targets = findTargetsInRange(t.x,t.y,t.rangeBoosted);
     if(!targets.length) return;
@@ -552,17 +531,14 @@ function fireTower(t){
     return;
   }
 
-  // default projectile (single)
   const targets = findTargetsInRange(t.x,t.y,t.rangeBoosted);
   if(!targets.length) return;
   const target = targets.sort((a,b)=>b.x-a.x)[0];
   const dx=target.x-t.x,dy=target.y-t.y,dist=Math.hypot(dx,dy),speed=9;
-  // ammo consumption
   if(t.maxAmmo){ t.ammo--; if(t.ammo<=0) t.reloadTimer=t.reloadTime; }
   STATE.projectiles.push({id:id('p'),x:t.x,y:t.y,vx:(dx/dist)*speed,vy:(dy/dist)*speed,dmg:t.dmgBoosted,aoe:t.aoe||0});
 }
 
-// apply damage with shield handling
 function applyDamage(e,amount){
   if(e.shield && e.shield>0){
     const s = Math.min(e.shield, amount);
@@ -576,16 +552,12 @@ function applyDamage(e,amount){
   }
 }
 
-/******************************************************************************************************/
-/* PROJECTILES UPDATE */
-/******************************************************************************************************/
+/* UPDATE LOOPS */
 function updateProjectiles(){
   for(let i=STATE.projectiles.length-1;i>=0;i--){
     const p=STATE.projectiles[i];
-    // drone projectiles behave as temporary units
     if(p.type==='drone' && p.drone){
       p.drone.life--;
-      // find nearest enemy
       const nearest = STATE.enemies.slice().sort((a,b)=>Math.hypot(a.x-p.drone.x,a.y-p.drone.y)-Math.hypot(b.x-p.drone.x,b.y-p.drone.y))[0];
       if(nearest){
         const dx = nearest.x - p.drone.x, dy = nearest.y - p.drone.y, d = Math.hypot(dx,dy)||1;
@@ -600,7 +572,6 @@ function updateProjectiles(){
     }
 
     if(p.homing && p.target){
-      // move toward target
       const dx = p.target.x - p.x, dy = p.target.y - p.y, d = Math.hypot(dx,dy)||1;
       p.vx += (dx/d)*0.8; p.vy += (dy/d)*0.8;
       const speed = Math.hypot(p.vx,p.vy);
@@ -612,7 +583,6 @@ function updateProjectiles(){
       p.x+=p.vx; p.y+=p.vy;
     }
 
-    // pierce handling & reflect handling
     if(p.pierce){
       for(const e of STATE.enemies){
         if(Math.hypot(e.x-p.x,e.y-p.y) < 12){
@@ -626,8 +596,8 @@ function updateProjectiles(){
         if(Math.hypot(e.x-p.x,e.y-p.y) < 12){
           applyDamage(e,p.dmg);
           p.reflects--;
-          // bounce to another random direction
-          p.vx = -p.vx + rand(-2,2); p.vy = -p.vy + rand(-2,2);
+          p.vx = -p.vx + rand(-2,2);
+          p.vy = -p.vy + rand(-2,2);
           if(p.reflects<=0){STATE.projectiles.splice(i,1);break}
         }
       }
@@ -649,30 +619,22 @@ function updateProjectiles(){
         }
       }
     }
-
     if(p.x<-80||p.x>W+80||p.y<-80||p.y>H+80) { STATE.projectiles.splice(i,1); }
   }
 }
 
-/******************************************************************************************************/
-/* ENEMIES UPDATE — adds abilities (healing, teleporting, shielding, jumping) */
-/******************************************************************************************************/
 function updateEnemies(dt){
   for(let i=STATE.enemies.length-1;i>=0;i--){
     const e=STATE.enemies[i];
-    // speed decay from slow effect
     let effSpeed = e.speed;
     if(e.slowTime && e.slowTime>0){ effSpeed *= (e.slow || 0.75); e.slowTime -= dt; if(e.slowTime<=0){ e.slow=undefined; } }
-    // phase: ghost sometimes phase (can't be damaged)
     if(e.phase){ e.phaseTimer += dt; if(e.phaseTimer>2500){ e.phase = !e.phase; e.phaseTimer=0 } }
-    // teleporter: occasionally teleport ahead
     if(e.teleCooldown){
       e.lastTele += dt;
       if(e.lastTele > e.teleCooldown){
         e.x += rand(60,140); e.lastTele = 0; spawnParticles(e.x,e.y,6); log(e.name+' teleported!');
       }
     }
-    // healer: heal nearby allies
     if(e.healPower){
       e.lastHeal = (e.lastHeal||0) + dt;
       if(e.lastHeal > e.healInterval){
@@ -685,7 +647,6 @@ function updateEnemies(dt){
         }
       }
     }
-    // jumper
     if(e.jumpInterval){
       e.lastJump = (e.lastJump||0) + dt;
       if(e.lastJump > e.jumpInterval){
@@ -694,11 +655,7 @@ function updateEnemies(dt){
         spawnParticles(e.x,e.y,6);
       }
     }
-
-    // move forward (phase ones still move but are immune sometimes)
     e.x += effSpeed * dt * 0.06;
-
-    // apply DOTs if exist
     if(e.dot){
       e.dot.nextTick = (e.dot.nextTick||0) + dt;
       if(e.dot.nextTick > e.dot.interval){
@@ -710,23 +667,14 @@ function updateEnemies(dt){
       if(e.dot.timeLeft <= 0) e.dot = null;
     }
 
-    // if reaches core
     if(e.x>W-40){
-      // suicide deals extra damage to core
-      if(e.suicide){
-        STATE.lives -= Math.ceil(e.explosion/10);
-      } else {
-        STATE.lives--;
-      }
+      if(e.suicide){ STATE.lives -= Math.ceil(e.explosion/10); } else { STATE.lives--; }
       STATE.enemies.splice(i,1);log('Core hit! Lives: '+STATE.lives);
       if(STATE.lives<=0) gameOver();
     }
   }
 }
 
-/******************************************************************************************************/
-/* KILL & REWARDS */
-/******************************************************************************************************/
 function killEnemy(e){
   if(!e) return;
   const idx = STATE.enemies.indexOf(e);
@@ -736,111 +684,82 @@ function killEnemy(e){
   gainXP(4);
   spawnParticles(e.x,e.y,8);
   log(e.name+' destroyed +'+e.reward);
-  // onDeath spawns
   if(e.proto && e.proto.onDeath){
     e.proto.onDeath.forEach(c=>spawnEnemy(c));
   }
-  // if wave ended, auto-detect handled in main loop
 }
 
-/******************************************************************************************************/
-/* PARTICLES */
-/******************************************************************************************************/
 function spawnParticles(x,y,c=6){for(let i=0;i<c;i++)STATE.particles.push({x:x+rand(-8,8),y:y+rand(-8,8),vx:rand(-0.6,0.6),vy:rand(-1.6,0.4),life:20+Math.random()*20})}
 function updateParticles(){for(let i=STATE.particles.length-1;i>=0;i--){const p=STATE.particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.03;p.life--;if(p.life<=0)STATE.particles.splice(i,1)}}
 
-/******************************************************************************************************/
-/* DRAW — grid/chessboard, sprites for towers, health bars, enhanced visuals */
-/******************************************************************************************************/
+/* DRAW */
 function draw(){
   ctx.clearRect(0,0,W,H);
-  // background lanes accent
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.fillRect(0,0,W,H);
-  /* chessboard grid */
   for(const cell of GRID){
     ctx.fillStyle = cell.active ? 'rgba(0,255,200,0.02)' : 'rgba(255,255,255,0.01)';
     ctx.fillRect(cell.x,cell.y,cell.w,cell.h);
-    // highlight placement cells
     if(cell.active){
       ctx.strokeStyle='rgba(0,255,200,0.05)';
       ctx.strokeRect(cell.x,cell.y,cell.w,cell.h);
     }
   }
-
-  /* lanes */
   ctx.strokeStyle='rgba(0,255,200,0.12)';ctx.lineWidth=2;
   lanesY.forEach(y=>{ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()});
-
-  /* Enemies */
+  
   STATE.enemies.forEach(e=>{
-    // body sprite
     ctx.beginPath();
     ctx.fillStyle = e.color;
     ctx.arc(e.x,e.y,14,0,Math.PI*2);
     ctx.fill();
-    // overlay if phased (ghost)
     if(e.phase){
       ctx.fillStyle='rgba(255,255,255,0.08)';
       ctx.beginPath();ctx.arc(e.x,e.y,18,0,Math.PI*2);ctx.fill();
     }
-    // shield ring
     if(e.shield && e.shield>0){
       ctx.strokeStyle='rgba(0,200,255,0.6)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(e.x,e.y,20,0,Math.PI*2);ctx.stroke();
     }
-    // health bar
     ctx.fillStyle='#222';ctx.fillRect(e.x-16,e.y-22,32,6);
     ctx.fillStyle='#0f0';ctx.fillRect(e.x-16,e.y-22,32*(e.hp/e.maxHp),6);
   });
 
-  /* Towers -> sprites and small icons + ammo bars */
   STATE.towers.forEach(t=>{
-    // sprite base
     ctx.save();
     ctx.translate(t.x,t.y);
     ctx.beginPath();
-    // different shapes per type for visual clarity
     if(t.type==='sniper' || t.type==='pierce'){ ctx.fillStyle='#ffd'; ctx.fillRect(-14,-10,28,20); }
     else if(t.type==='missile' || t.type==='rocket'){ ctx.fillStyle='#ffa'; ctx.beginPath(); ctx.moveTo(-12,10); ctx.lineTo(0,-14); ctx.lineTo(12,10); ctx.closePath(); ctx.fill(); }
     else if(t.type==='beam'){ ctx.fillStyle='#9ff'; ctx.fillRect(-10,-10,20,20); }
     else { ctx.fillStyle='#0ff'; ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.fill(); }
-    // little turret barrel
     ctx.fillStyle='#022'; ctx.fillRect(4,-3,10,6);
     ctx.restore();
 
-    // ammo bar
     if(t.maxAmmo){
       ctx.fillStyle='#111'; ctx.fillRect(t.x-16,t.y+18,32,4);
       const perc = (t.ammo / t.maxAmmo) || 0;
       ctx.fillStyle='#0ff'; ctx.fillRect(t.x-16,t.y+18,32*perc,4);
     }
-    // level indicator
     ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(t.x-18,t.y-28,36,6);
     ctx.fillStyle='#bdf'; ctx.fillRect(t.x-18,t.y-28,36*(t.level/10),6);
   });
 
-  /* Projectiles */
   STATE.projectiles.forEach(p=>{
     ctx.fillStyle='#fff';
     if(p.drone) { ctx.fillStyle='#7ff'; ctx.fillRect(p.drone.x-3,p.drone.y-3,6,6); }
     else { ctx.fillRect(p.x-2,p.y-2,4,4); }
   });
 
-  /* Particles */
   STATE.particles.forEach(p=>{ctx.fillStyle='rgba(0,255,200,0.4)';ctx.fillRect(p.x,p.y,2,2)});
 
-  // draw HUD small
   ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(W-220,8,210,36);
   ctx.fillStyle='#9ff'; ctx.font='12px monospace'; ctx.fillText('Money: '+STATE.money, W-210, 28);
 }
 
-/******************************************************************************************************/
-/* MAIN LOOP */
-/******************************************************************************************************/
+/* LOOP */
 let last=performance.now(),spawnTimer=0;
 function loop(now){
   const dt = now - last; last = now;
-  // spawn enemies if wave active
   if(STATE.waveActive && STATE.waveQueue.length>0){
     spawnTimer += dt;
     if(spawnTimer > 550){
@@ -849,43 +768,33 @@ function loop(now){
     }
   }
 
-  // towers cooldowns, reloads, and firing
   STATE.towers.forEach(t=>{
-    // reload timer
     if(t.reloadTimer){
       t.reloadTimer -= (dt);
       if(t.reloadTimer <= 0){
         t.ammo = t.maxAmmo; t.reloadTimer = 0; log(t.name + ' reloaded');
       }
     }
-    // rate cooldown
     t.cooldown -= dt/16;
     if(t.cooldown <= 0){
-      // update dynamic computed rate
       t.rateBoosted = Math.max(0.02, (t.fireRate || 1) * (1 - STATE.globalUpgrades.rate));
       if((!t.maxAmmo || (t.ammo && t.ammo>0)) ){
         try{ fireTower(t); }catch(e){ console.error(e); }
       }
-      // set next cooldown
       t.cooldown = t.rateBoosted || t.fireRate || 1;
     }
   });
 
-  // update projectiles and enemies and particles
   updateProjectiles();
   updateEnemies(dt);
   updateParticles();
 
-  // check wave finish auto-clear: when active and queue empty and no enemies left => end wave
   if(STATE.waveActive && STATE.waveQueue.length===0 && STATE.enemies.length===0){
     STATE.waveActive=false;
-    // reward and progression
     const reward = Math.max(STATE.quizReward, Math.floor(50 + STATE.wave*5));
     STATE.money += reward;
     log('Wave '+STATE.wave+' cleared automatically. Reward: '+reward);
-    // small xp
     gainXP(10 + STATE.wave);
-    // reset spawnTimer
     spawnTimer = 0;
   }
 
@@ -894,9 +803,6 @@ function loop(now){
 }
 requestAnimationFrame(loop);
 
-/******************************************************************************************************/
-/* UI REFRESH */
-/******************************************************************************************************/
 function updateUI(){
   document.getElementById('money').innerText=STATE.money;
   document.getElementById('lives').innerText=STATE.lives;
@@ -906,32 +812,16 @@ function updateUI(){
   document.getElementById('xpReq').innerText=STATE.xpReq;
   document.getElementById('xpBar').style.width=(STATE.xp/STATE.xpReq*100)+'%';
 }
-
-/******************************************************************************************************/
-/* LOG */
-/******************************************************************************************************/
 function log(msg){const L=document.getElementById('logArea');const d=document.createElement('div');d.innerText=msg;L.appendChild(d);L.scrollTop=L.scrollHeight}
-
-/******************************************************************************************************/
-/* SAVE / LOAD */
-/******************************************************************************************************/
 function saveGame(){localStorage.setItem('CF_SAVE',JSON.stringify(STATE));log('Saved')}
 function loadGame(){const d=localStorage.getItem('CF_SAVE');if(d){Object.assign(STATE,JSON.parse(d));log('Loaded');updateUI()}}
+function gameOver(){STATE.waveActive=false;STATE.enemies=[];STATE.towers=[];log('GAME OVER — Refresh to Retry')}
 
-/******************************************************************************************************/
-/* Button Bindings */
-/******************************************************************************************************/
 document.getElementById('startWaveBtn').onclick=startWaveWithQuiz;
 document.getElementById('startWaveTop').onclick=startWaveWithQuiz;
 document.getElementById('clearWave').onclick=()=>{STATE.enemies=[];STATE.waveActive=false;STATE.waveQueue=[];log('Wave cleared manually')};
 document.getElementById('saveBtn').onclick=saveGame;document.getElementById('loadBtn').onclick=loadGame;
 document.onkeydown=e=>{if(e.key==='s')saveGame();if(e.key==='l')loadGame()}
-
-/******************************************************************************************************/
-/* GAME OVER */
-/******************************************************************************************************/
-function gameOver(){STATE.waveActive=false;STATE.enemies=[];STATE.towers=[];log('GAME OVER — Refresh to Retry')}
-
 </script>
 </body>
 </html>
